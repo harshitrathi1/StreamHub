@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>StreamHub - OTT & सोशल प्लेटफॉर्म</title>
+  
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- फायरबेस कम्पैटिबिलिटी स्क्रिप्ट्स (बिना किसी CORS एरर के सीधे काम करती हैं) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #09090e;
+      --surface: #14141d;
+      --surface-light: #1f1f2e;
+      --primary: #ff0055;
+      --primary-glow: rgba(255, 0, 85, 0.4);
+      --accent: #7928ca;
+      --text: #ffffff;
+      --text-muted: #8e8ea0;
+      --border: #28283a;
+      --nav-height: 56px;
+      --bottom-height: 62px;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* 1. ऑनबोर्डिंग गेटवे (First Time Login Screen) */
+    #onboardingGate {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at top right, rgba(121, 40, 202, 0.25), transparent 60%),
+                  radial-gradient(circle at bottom left, rgba(255, 0, 85, 0.2), transparent 50%),
+                  #07070b;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .welcome-card {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(20, 20, 29, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 26px 20px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      text-align: center;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .brand-logo .material-icons {
+      font-size: 34px;
+      color: var(--primary);
+    }
+
+    .brand-logo span {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #ff0055, #ff5470);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .btn-google {
+      width: 100%;
+      background: #ffffff;
+      color: #111;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .divider::before, .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .auth-toggle-bar {
+      display: flex;
+      background: var(--surface-light);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 12px;
+    }
+
+    .auth-toggle-btn {
+      flex: 1;
+      padding: 7px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .auth-toggle-btn.active {
+      background: var(--surface);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .ui-input {
+      width: 100%;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 13px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      margin-bottom: 10px;
+    }
+
+    .btn-primary-action {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-guest-action {
+      width: 100%;
+      margin-top: 12px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    /* 2. मुख्य ऐप शैल */
+    #appShell {
+      display: none;
+      padding-top: var(--nav-height);
+      padding-bottom: calc(var(--bottom-height) + 10px);
+    }
+
+    .top-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: var(--nav-height);
+      background: rgba(9, 9, 14, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .brand-title .material-icons {
+      color: var(--primary);
+    }
+
+    .user-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .user-indicator img {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    /* बॉटम नेविगेशन */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: var(--bottom-height);
+      background: #111119;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      z-index: 1000;
+    }
+
+    .nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      height: 100%;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .nav-btn.active {
+      color: #fff;
+    }
+
+    .nav-btn.active .material-icons {
+      color: var(--primary);
+    }
+
+    .plus-btn-wrap {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .center-plus-btn {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    /* व्यूज */
+    .view-content {
+      display: none;
+      padding: 12px;
+    }
+
+    .view-content.active {
+      display: block;
+    }
+
+    /* कैटेगरी बार */
+    .cat-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 12px;
+    }
+
+    .cat-bar::-webkit-scrollbar { display: none; }
+
+    .cat-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-size: 12px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .cat-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* वीडियो फीड */
+    .feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .feed-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .thumb-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #181822;
+    }
+
+    .thumb-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .type-badge {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.8);
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .card-meta img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #252535;
+      flex-shrink: 0;
+    }
+
+    .meta-desc h3 {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .meta-desc p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* एक्सप्लोर ग्रिड */
+    .search-box-wrap {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .search-box-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 10px 14px 10px 40px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-box-wrap .material-icons {
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      color: var(--text-muted);
+      font-size: 20px;
+    }
+
+    .explore-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+    }
+
+    .explore-item {
+      aspect-ratio: 1;
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    .explore-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* वॉच प्लेयर स्क्रीन */
+    #watchView { padding: 0; }
+    .player-mount {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      position: sticky;
+      top: var(--nav-height);
+      z-index: 500;
+    }
+
+    .player-mount iframe, .player-mount video {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .watch-info-wrap {
+      padding: 14px;
+    }
+
+    .actions-scroll {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .btn-action-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* मॉडल्स */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: #14141e;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 380px;
+      padding: 20px;
+    }
+
+    .file-box {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 12px;
+      background: var(--surface-light);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==============================================
+       1. ऑनबोर्डिंग लॉगिन गेटवे (First Launch Gate)
+  ============================================== -->
+  <section id="onboardingGate">
+    <div class="welcome-card">
+      <div class="brand-logo">
+        <span class="material-icons">play_circle_filled</span>
+        <span>StreamHub</span>
+      </div>
+      <p>प्रीमियम वीडियो, मूवीज और सीरीज का अनुभव लें।</p>
+
+      <button class="btn-google" onclick="appEngine.loginGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="Google">
+        Google से जारी रखें
+      </button>
+
+      <div class="divider">अथवा ईमेल द्वारा</div>
+
+      <div class="auth-toggle-bar">
+        <button class="auth-toggle-btn active" id="tabOnboardLogin" onclick="appEngine.toggleAuthMode(true)">लॉग इन</button>
+        <button class="auth-toggle-btn" id="tabOnboardReg" onclick="appEngine.toggleAuthMode(false)">साइन अप</button>
+      </div>
+
+      <input type="email" id="onboardEmail" class="ui-input" placeholder="ईमेल आईडी">
+      <input type="password" id="onboardPassword" class="ui-input" placeholder="पासवर्ड (6+ अक्षर)">
+      <button class="btn-primary-action" id="btnOnboardSubmit" onclick="appEngine.handleEmailAuth()">लॉग इन करें</button>
+
+      <button class="btn-guest-action" onclick="appEngine.enterAsGuest()">
+        <span class="material-icons" style="font-size: 16px;">visibility</span>
+        गेस्ट मोड में जारी रखें (Guest Mode)
+      </button>
+    </div>
+  </section>
+
+  <!-- ==============================================
+       2. मुख्य ऐप शैल
+  ============================================== -->
+  <div id="appShell">
+
+    <!-- टॉप हेडर -->
+    <header class="top-header">
+      <div class="brand-title">
+        <span class="material-icons">play_circle_filled</span>
+        <span>StreamHub</span>
+      </div>
+      <div class="user-indicator" onclick="appEngine.onUserBadgeClick()">
+        <img id="navAvatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3C/svg%3E">
+        <span id="navUserLabel">गेस्ट मोड</span>
+      </div>
+    </header>
+
+    <!-- (A) होम व्यू -->
+    <section id="homeView" class="view-content active">
+      <div class="cat-bar" id="categoryChips">
+        <button class="cat-chip active" onclick="appEngine.filterCategory('all', this)">सभी</button>
+        <button class="cat-chip" onclick="appEngine.filterCategory('series', this)">सीरीज</button>
+        <button class="cat-chip" onclick="appEngine.filterCategory('movies', this)">मूवीज</button>
+      </div>
+      <div class="feed-list" id="homeFeedList"></div>
+      <button id="btnLoadMore" class="btn-action-pill" style="width:100%; justify-content:center; margin-top:14px; display:none;" onclick="appEngine.renderNextChunk()">और लोड करें</button>
+    </section>
+
+    <!-- (B) सर्च व्यू -->
+    <section id="searchView" class="view-content">
+      <div class="search-box-wrap">
+        <span class="material-icons">search</span>
+        <input type="text" placeholder="वीडियो, मूवीज या टैग खोजें..." oninput="appEngine.searchVideos(this.value)">
+      </div>
+      <div class="explore-grid" id="exploreGrid"></div>
+    </section>
+
+    <!-- (C) वॉच प्लेयर व्यू -->
+    <section id="watchView" class="view-content">
+      <div class="player-mount" id="playerTarget"></div>
+      <div class="watch-info-wrap">
+        <h2 id="wTitle" style="font-size: 15px; margin-bottom: 4px;">शीर्षक</h2>
+        <p id="wMeta" style="font-size: 11px; color: var(--text-muted);"></p>
+
+        <div class="actions-scroll">
+          <button class="btn-action-pill" onclick="appEngine.triggerLike()">
+            <span class="material-icons">thumb_up</span>
+            <span id="wLikeCount">0</span>
+          </button>
+          <button class="btn-action-pill" onclick="appEngine.triggerShare()">
+            <span class="material-icons">share</span> शेयर करें
+          </button>
+          <button class="btn-action-pill" id="wDownloadBtn" style="display:none;" onclick="appEngine.triggerDownload()">
+            <span class="material-icons">download</span> डाउनलोड
+          </button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <img id="wCreatorImg" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3C/svg%3E">
+            <div>
+              <h4 id="wCreatorName" style="font-size: 13px;">क्रिएटर</h4>
+              <p id="wCreatorSubs" style="font-size: 11px; color: var(--text-muted);">0 सब्सक्राइबर्स</p>
+            </div>
+          </div>
+          <button class="btn-action-pill" style="background: var(--primary); border:none;" onclick="appEngine.triggerSubscribe()">सब्सक्राइब</button>
+        </div>
+
+        <h4 style="font-size: 13px; margin: 16px 0 8px 0;">सजेस्टेड वीडियो</h4>
+        <div class="feed-list" id="suggestedFeed"></div>
+      </div>
+    </section>
+
+    <!-- (D) प्रोफाइल व्यू -->
+    <section id="profileView" class="view-content">
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; text-align: center; margin-bottom: 14px;">
+        <img id="pPhoto" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='75' height='75'%3E%3Crect width='100%25' height='100%25' fill='%23333'/%3E%3C/svg%3E" style="width:75px; height:75px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); margin-bottom:8px;">
+        <h3 id="pName" style="font-size: 15px;">गेस्ट यूज़र</h3>
+        <p id="pEmail" style="font-size: 11px; color: var(--text-muted);"></p>
+
+        <div style="margin-top: 10px;">
+          <input type="file" id="pPhotoInput" accept="image/*" style="display:none;" onchange="appEngine.processImageCompression(event, 'profile')">
+          <button class="btn-action-pill" style="margin: 0 auto;" onclick="appEngine.requestPhotoUpload()">
+            <span class="material-icons" style="font-size: 16px;">photo_camera</span> प्रोफाइल फोटो बदलें
+          </button>
+        </div>
+      </div>
+
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px;">
+        <h4 style="font-size: 13px; margin-bottom: 4px;">क्रिएटर पार्टनर प्रोग्राम</h4>
+        <div id="creatorBadgeArea">
+          <button class="btn-primary-action" onclick="appEngine.applyCreator()">पार्टनर प्रोग्राम के लिए अप्लाई करें</button>
+        </div>
+      </div>
+
+      <h4 style="font-size: 13px; margin-bottom: 8px;">वॉच हिस्ट्री</h4>
+      <div class="feed-list" id="historyFeed"></div>
+    </section>
+
+    <!-- बॉटम नेविगेशन बार -->
+    <nav class="bottom-bar">
+      <button class="nav-btn active" onclick="appEngine.switchTab('homeView', this)">
+        <span class="material-icons">home</span>
+        <span>होम</span>
+      </button>
+      <button class="nav-btn" onclick="appEngine.switchTab('searchView', this)">
+        <span class="material-icons">search</span>
+        <span>सर्च</span>
+      </button>
+      <div class="plus-btn-wrap">
+        <button class="center-plus-btn" onclick="appEngine.handlePlusClick()">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <button class="nav-btn" onclick="appEngine.switchTab('profileView', this)">
+        <span class="material-icons">person</span>
+        <span>प्रोफाइल</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ==============================================
+       3. मॉडल्स
+  ============================================== -->
+  <!-- गेस्ट अपग्रेड पॉपअप -->
+  <div id="upgradeModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+        <h3 style="font-size: 15px;">लॉग इन आवश्यक है</h3>
+        <span class="material-icons" style="cursor:pointer;" onclick="appEngine.toggleModal('upgradeModal', false)">close</span>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">इस फीचर के लिए लॉगिन करें।</p>
+      <button class="btn-google" onclick="appEngine.loginGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="Google">
+        Google से लॉग इन करें
+      </button>
+    </div>
+  </div>
+
+  <!-- चैनल सेटअप -->
+  <div id="channelModal" class="modal-backdrop">
+    <div class="modal-box">
+      <h3 style="font-size: 15px; margin-bottom: 8px;">चैनल सेटअप करें</h3>
+      <input type="text" id="setupChName" class="ui-input" placeholder="चैनल का नाम">
+      <input type="file" id="chLogoInput" accept="image/*" style="display:none;" onchange="appEngine.processImageCompression(event, 'channel')">
+      <div class="file-box" onclick="document.getElementById('chLogoInput').click()">
+        <span class="material-icons" style="color:var(--primary);">image</span>
+        <div id="chLogoStatus">चैनल लोगो चुनें</div>
+      </div>
+      <textarea id="setupChDesc" class="ui-input" placeholder="विवरण..."></textarea>
+      <button class="btn-primary-action" onclick="appEngine.saveChannel()">चैनल एक्टिवेट करें</button>
+    </div>
+  </div>
+
+  <!-- वीडियो अपलोड -->
+  <div id="uploadModal" class="modal-backdrop">
+    <div class="modal-box" style="max-height:85vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+        <h3 style="font-size: 15px;">वीडियो अपलोड करें</h3>
+        <span class="material-icons" style="cursor:pointer;" onclick="appEngine.toggleModal('uploadModal', false)">close</span>
+      </div>
+      <input type="text" id="upDriveUrl" class="ui-input" placeholder="गूगल ड्राइव लिंक / वीडियो URL">
+      <input type="text" id="upTitle" class="ui-input" placeholder="शीर्षक">
+      <textarea id="upDesc" class="ui-input" placeholder="विवरण..."></textarea>
+
+      <input type="file" id="upThumbInput" accept="image/*" style="display:none;" onchange="appEngine.processImageCompression(event, 'video')">
+      <div class="file-box" onclick="document.getElementById('upThumbInput').click()">
+        <span class="material-icons" style="color:var(--primary);">add_photo_alternate</span>
+        <div id="upThumbStatus">थंबनेल फोटो चुनें</div>
+      </div>
+
+      <select id="upType" class="ui-input">
+        <option value="movies">फुल मूवी / सिंगल</option>
+        <option value="series">सीरीज / एपिसोड</option>
+      </select>
+      <select id="upCategory" class="ui-input"></select>
+
+      <div style="font-size: 12px; display:flex; flex-direction:column; gap:6px; margin: 6px 0 12px 0;">
+        <label><input type="checkbox" id="upHideLikes"> लाइक्स छुपाएं</label>
+        <label><input type="checkbox" id="upEnableDownload"> डाउनलोड चालू रखें</label>
+      </div>
+
+      <button class="btn-primary-action" onclick="appEngine.publishVideo()">पब्लिश करें</button>
+    </div>
+  </div>
+
+  <!-- ==============================================
+       4. मुख्य कोर इंजन (जावास्क्रिप्ट)
+  ============================================== -->
+  <script>
+    // 1. फायरबेस इनिशियलाइज
+    const firebaseConfig = {
+      apiKey: "AIzaSyDQa3MkAeHEKfeLuUDlQfVbNKL5JpPyK9A",
+      authDomain: "extramovies-1f8dd.firebaseapp.com",
+      databaseURL: "https://extramovies-1f8dd-default-rtdb.firebaseio.com",
+      projectId: "extramovies-1f8dd",
+      storageBucket: "extramovies-1f8dd.firebasestorage.app",
+      messagingSenderId: "490629885093",
+      appId: "1:490629885093:web:bdbd38086629c5def2f14c",
+      measurementId: "G-4PR7TRPDSW"
+    };
+
+    let auth = null;
+    let db = null;
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      db = firebase.firestore();
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    } catch (e) {
+      console.warn("फायरबेस ऑफलाइन/इनिशियलाइजेशन चेतावनी:", e);
+    }
+
+    // 2. इंजन स्टेट
+    window.appEngine = {
+      user: null,
+      profile: null,
+      isGuest: false,
+      isLoginMode: true,
+      allVideos: [],
+      filteredVideos: [],
+      batchIdx: 0,
+      batchSize: 4,
+      currentVideo: null,
+      tempLogo: '',
+      tempThumb: '',
+
+      init: function() {
+        const pref = localStorage.getItem('streamhub_pref');
+        
+        if (auth) {
+          auth.onAuthStateChanged((u) => {
+            if (u) {
+              this.user = u;
+              this.isGuest = false;
+              localStorage.setItem('streamhub_pref', 'user');
+              document.getElementById('navUserLabel').innerText = u.displayName || u.email.split('@')[0];
+              document.getElementById('pName').innerText = u.displayName || 'यूज़र';
+              document.getElementById('pEmail').innerText = u.email;
+              if (u.photoURL) {
+                document.getElementById('navAvatar').src = u.photoURL;
+                document.getElementById('pPhoto').src = u.photoURL;
+              }
+              this.syncUserProfile(u.uid);
+              this.launchApp();
+            } else {
+              this.user = null;
+              if (pref === 'guest') {
+                this.isGuest = true;
+                this.launchApp();
+              } else {
+                document.getElementById('onboardingGate').style.display = 'flex';
+                document.getElementById('appShell').style.display = 'none';
+              }
+            }
+          });
+        } else if (pref === 'guest') {
+          this.isGuest = true;
+          this.launchApp();
+        } else {
+          document.getElementById('onboardingGate').style.display = 'flex';
+        }
+
+        this.bindCategories();
+        this.bindVideos();
+      },
+
+      launchApp: function() {
+        document.getElementById('onboardingGate').style.display = 'none';
+        document.getElementById('appShell').style.display = 'block';
+      },
+
+      enterAsGuest: function() {
+        localStorage.setItem('streamhub_pref', 'guest');
+        this.isGuest = true;
+        this.launchApp();
+      },
+
+      toggleAuthMode: function(isLogin) {
+        this.isLoginMode = isLogin;
+        document.getElementById('tabOnboardLogin').className = isLogin ? 'auth-toggle-btn active' : 'auth-toggle-btn';
+        document.getElementById('tabOnboardReg').className = !isLogin ? 'auth-toggle-btn active' : 'auth-toggle-btn';
+        document.getElementById('btnOnboardSubmit').innerText = isLogin ? 'लॉग इन करें' : 'नया खाता बनाएं';
+      },
+
+      loginGoogle: function() {
+        if (!auth) return alert("फायरबेस कनेक्टेड नहीं है!");
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).then(() => {
+          this.toggleModal('upgradeModal', false);
+        }).catch(e => alert(e.message));
+      },
+
+      handleEmailAuth: function() {
+        const em = document.getElementById('onboardEmail').value.trim();
+        const pw = document.getElementById('onboardPassword').value.trim();
+        if (!em || pw.length < 6) return alert("कृपया सही ईमेल और 6+ अक्षरों का पासवर्ड डालें!");
+        if (this.isLoginMode) {
+          auth.signInWithEmailAndPassword(em, pw).catch(e => alert(e.message));
+        } else {
+          auth.createUserWithEmailAndPassword(em, pw).catch(e => alert(e.message));
+        }
+      },
+
+      syncUserProfile: function(uid) {
+        if (!db) return;
+        db.collection("users").doc(uid).get().then(doc => {
+          if (doc.exists) {
+            this.profile = doc.data();
+            if (this.profile.channelName) {
+              document.getElementById('pName').innerText = this.profile.channelName;
+            }
+            if (this.profile.channelLogo) {
+              document.getElementById('pPhoto').src = this.profile.channelLogo;
+              document.getElementById('navAvatar').src = this.profile.channelLogo;
+            }
+            if (this.profile.creatorStatus === 'applied') {
+              document.getElementById('creatorBadgeArea').innerHTML = `<button class="btn-primary-action" style="background:#28a745; cursor:default;">अंडर रिव्यू (Under Review) ✓</button>`;
+            }
+          }
+        });
+      },
+
+      // डेटा सेवर कैनवस कंप्रेसर
+      processImageCompression: function(e, type) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxDim = 400;
+            let w = img.width, h = img.height;
+            if (w > h && w > maxDim) { h *= maxDim / w; w = maxDim; }
+            else if (h > maxDim) { w *= maxDim / h; h = maxDim; }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const comp = canvas.toDataURL('image/jpeg', 0.65);
+
+            if (type === 'profile') {
+              document.getElementById('pPhoto').src = comp;
+              document.getElementById('navAvatar').src = comp;
+              if (this.user && db) {
+                db.collection("users").doc(this.user.uid).set({ channelLogo: comp }, { merge: true });
+              }
+            } else if (type === 'channel') {
+              this.tempLogo = comp;
+              document.getElementById('chLogoStatus').innerText = "लोगो सेलेक्ट हो गया ✓";
+            } else if (type === 'video') {
+              this.tempThumb = comp;
+              document.getElementById('upThumbStatus').innerText = "थंबनेल सेलेक्ट हो गया ✓";
+            }
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      },
+
+      requestPhotoUpload: function() {
+        if (!this.user) return this.toggleModal('upgradeModal', true);
+        document.getElementById('pPhotoInput').click();
+      },
+
+      bindCategories: function() {
+        if (!db) return;
+        db.collection("categories").onSnapshot(snap => {
+          const chips = document.getElementById('categoryChips');
+          const select = document.getElementById('upCategory');
+          chips.innerHTML = `
+            <button class="cat-chip active" onclick="appEngine.filterCategory('all', this)">सभी</button>
+            <button class="cat-chip" onclick="appEngine.filterCategory('series', this)">सीरीज</button>
+            <button class="cat-chip" onclick="appEngine.filterCategory('movies', this)">मूवीज</button>
+          `;
+          select.innerHTML = '<option value="Action">Action</option><option value="Drama">Drama</option>';
+          snap.forEach(d => {
+            const n = d.data().name;
+            chips.innerHTML += `<button class="cat-chip" onclick="appEngine.filterCategory('${n}', this)">${n}</button>`;
+            select.innerHTML += `<option value="${n}">${n}</option>`;
+          });
+        });
+      },
+
+      bindVideos: function() {
+        if (!db) return;
+        db.collection("videos").orderBy("timestamp", "desc").limit(40).onSnapshot(snap => {
+          this.allVideos = [];
+          snap.forEach(d => this.allVideos.push({ id: d.id, ...d.data() }));
+          this.filteredVideos = [...this.allVideos];
+          this.resetFeed();
+          this.renderExplore(this.allVideos);
+        });
+      },
+
+      resetFeed: function() {
+        this.batchIdx = 0;
+        document.getElementById('homeFeedList').innerHTML = '';
+        this.renderNextChunk();
+      },
+
+      renderNextChunk: function() {
+        const start = this.batchIdx * this.batchSize;
+        const chunk = this.filteredVideos.slice(start, start + this.batchSize);
+        const btn = document.getElementById('btnLoadMore');
+        if (chunk.length === 0) { btn.style.display = 'none'; return; }
+        btn.style.display = 'flex';
+
+        const feed = document.getElementById('homeFeedList');
+        chunk.forEach(v => {
+          feed.innerHTML += `
+            <div class="feed-card" onclick="appEngine.openVideo('${v.id}')">
+              <div class="thumb-frame">
+                <img src="${v.thumbnail || ''}" loading="lazy">
+                <span class="type-badge">${v.type === 'series' ? 'सीरीज' : 'फिल्म'}</span>
+              </div>
+              <div class="card-meta">
+                <img src="${v.creatorAvatar || ''}">
+                <div class="meta-desc">
+                  <h3>${v.title}</h3>
+                  <p>${v.creatorName} • ${v.views ? v.views.length : 0} व्यूज</p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        this.batchIdx++;
+      },
+
+      renderExplore: function(list) {
+        const grid = document.getElementById('exploreGrid');
+        grid.innerHTML = '';
+        list.slice(0, 15).forEach(v => {
+          grid.innerHTML += `
+            <div class="explore-item" onclick="appEngine.openVideo('${v.id}')">
+              <img src="${v.thumbnail || ''}" loading="lazy">
+            </div>
+          `;
+        });
+      },
+
+      searchVideos: function(val) {
+        const q = val.toLowerCase().trim();
+        if (!q) return this.renderExplore(this.allVideos);
+        const match = this.allVideos.filter(v => (v.title && v.title.toLowerCase().includes(q)) || (v.category && v.category.toLowerCase().includes(q)));
+        this.renderExplore(match);
+      },
+
+      openVideo: function(id) {
+        const v = this.allVideos.find(x => x.id === id);
+        if (!v) return;
+        this.currentVideo = v;
+
+        let src = v.driveUrl || '';
+        if (src.includes('/file/d/')) {
+          const fid = src.split('/file/d/')[1].split('/')[0];
+          src = `https://drive.google.com/file/d/${fid}/preview`;
+        }
+
+        document.getElementById('playerTarget').innerHTML = `<iframe src="${src}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+        document.getElementById('wTitle').innerText = v.title;
+        document.getElementById('wMeta').innerText = `${v.views ? v.views.length : 0} व्यूज • ${v.category}`;
+        document.getElementById('wCreatorName').innerText = v.creatorName;
+        document.getElementById('wCreatorImg').src = v.creatorAvatar || '';
+        document.getElementById('wCreatorSubs').innerText = `${v.subscribersCount || 0} सब्सक्राइबर्स`;
+        document.getElementById('wLikeCount').innerText = v.hideLikes ? '' : (v.likes ? v.likes.length : 0);
+        document.getElementById('wDownloadBtn').style.display = v.enableDownload ? 'flex' : 'none';
+
+        this.routeDirect('watchView');
+
+        // 1 यूजर = 1 व्यू
+        const viewerId = this.user ? this.user.uid : this.getFp();
+        if (db && (!v.views || !v.views.includes(viewerId))) {
+          db.collection("videos").doc(id).update({
+            views: firebase.firestore.FieldValue.arrayUnion(viewerId)
+          });
+        }
+      },
+
+      getFp: function() {
+        let f = localStorage.getItem('sh_dev_fp');
+        if (!f) { f = 'dev_' + Math.random().toString(36).substr(2, 9); localStorage.setItem('sh_dev_fp', f); }
+        return f;
+      },
+
+      triggerLike: function() {
+        if (!this.user) return this.toggleModal('upgradeModal', true);
+        if (!db) return;
+        db.collection("videos").doc(this.currentVideo.id).update({
+          likes: firebase.firestore.FieldValue.arrayUnion(this.user.uid)
+        });
+        document.getElementById('wLikeCount').innerText = (this.currentVideo.likes?.length || 0) + 1;
+      },
+
+      triggerSubscribe: function() {
+        if (!this.user) return this.toggleModal('upgradeModal', true);
+        if (!db) return;
+        db.collection("creators").doc(this.currentVideo.creatorId).set({
+          subs: firebase.firestore.FieldValue.increment(1)
+        }, { merge: true });
+        alert("सब्सक्राइब हो गया!");
+      },
+
+      triggerShare: function() {
+        if (navigator.share) {
+          navigator.share({ title: this.currentVideo?.title || 'StreamHub', url: window.location.href });
+        } else {
+          navigator.clipboard.writeText(window.location.href);
+          alert("लिंक कॉपी हो गया!");
+        }
+      },
+
+      triggerDownload: function() {
+        if (this.currentVideo?.driveUrl) window.open(this.currentVideo.driveUrl, '_blank');
+      },
+
+      handlePlusClick: function() {
+        if (!this.user) return this.toggleModal('upgradeModal', true);
+        if (!this.profile?.channelName) {
+          this.toggleModal('channelModal', true);
+        } else {
+          this.toggleModal('uploadModal', true);
+        }
+      },
+
+      saveChannel: function() {
+        const name = document.getElementById('setupChName').value.trim();
+        const desc = document.getElementById('setupChDesc').value.trim();
+        if (!name) return alert("चैनल का नाम जरूरी है!");
+        const payload = { channelName: name, channelLogo: this.tempLogo || '', channelDesc: desc };
+        db.collection("users").doc(this.user.uid).set(payload, { merge: true });
+        this.profile = { ...this.profile, ...payload };
+        this.toggleModal('channelModal', false);
+        this.toggleModal('uploadModal', true);
+      },
+
+      publishVideo: function() {
+        const url = document.getElementById('upDriveUrl').value.trim();
+        const title = document.getElementById('upTitle').value.trim();
+        const desc = document.getElementById('upDesc').value.trim();
+        const type = document.getElementById('upType').value;
+        const category = document.getElementById('upCategory').value;
+        const hideLikes = document.getElementById('upHideLikes').checked;
+        const enableDownload = document.getElementById('upEnableDownload').checked;
+
+        if (!url || !title) return alert("ड्राइव लिंक और शीर्षक जरूरी है!");
+
+        db.collection("videos").add({
+          driveUrl: url,
+          thumbnail: this.tempThumb || '',
+          title,
+          description: desc,
+          type,
+          category: category || 'General',
+          hideLikes,
+          enableDownload,
+          creatorId: this.user.uid,
+          creatorName: this.profile?.channelName || 'क्रिएटर',
+          creatorAvatar: this.profile?.channelLogo || '',
+          views: [],
+          likes: [],
+          timestamp: Date.now()
+        }).then(() => {
+          this.toggleModal('uploadModal', false);
+          alert("वीडियो सफलतापूर्वक पब्लिश हो गई!");
+        });
+      },
+
+      applyCreator: function() {
+        if (!this.user) return this.toggleModal('upgradeModal', true);
+        db.collection("users").doc(this.user.uid).set({ creatorStatus: 'applied' }, { merge: true });
+        document.getElementById('creatorBadgeArea').innerHTML = `<button class="btn-primary-action" style="background:#28a745; cursor:default;">अंडर रिव्यू (Under Review) ✓</button>`;
+        alert("पार्टनर प्रोग्राम एप्लीकेशन सबमिट हो गई!");
+      },
+
+      switchTab: function(viewId, btn) {
+        document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        if (btn) btn.classList.add('active');
+        window.scrollTo(0, 0);
+      },
+
+      routeDirect: function(viewId) {
+        document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        window.scrollTo(0, 0);
+      },
+
+      filterCategory: function(cat, btn) {
+        document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        if (cat === 'all') {
+          this.filteredVideos = [...this.allVideos];
+        } else if (cat === 'series' || cat === 'movies') {
+          this.filteredVideos = this.allVideos.filter(v => v.type === cat);
+        } else {
+          this.filteredVideos = this.allVideos.filter(v => v.category === cat);
+        }
+        this.resetFeed();
+      },
+
+      toggleModal: function(id, show) {
+        document.getElementById(id).style.display = show ? 'flex' : 'none';
+      },
+
+      onUserBadgeClick: function() {
+        if (!this.user) {
+          this.toggleModal('upgradeModal', true);
+        } else {
+          this.switchTab('profileView', document.querySelectorAll('.nav-btn')[3]);
+        }
+      }
+    };
+
+    // DOM लोड होते ही इंजन शुरू करें
+    window.addEventListener('DOMContentLoaded', () => {
+      window.appEngine.init();
+    });
+  </script>
+</body>
+</html>
